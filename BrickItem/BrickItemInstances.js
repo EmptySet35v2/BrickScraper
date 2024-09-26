@@ -24,9 +24,6 @@ class BrickItemInstances extends Array{
   constructor (...args) {
     super(...args);
     this.checkType(false, ...args);
-
-    // Convenience property for serializing and parsing this class as JSON
-    this.jsonType = this.constructor.name;
   }
 
   /*************************************************************************************************
@@ -69,6 +66,21 @@ class BrickItemInstances extends Array{
       // Otherwise must be of the right type
       if (!(arg instanceof BrickItemInstance)) throw "Must be a BrickItemInstance";
     }
+  }
+
+  /*************************************************************************************************
+  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
+  / instead. This allows us to remove the circular references that prevent JSON.stringify from
+  / working.
+  *************************************************************************************************/
+  toJSON () {
+    // Replace each BrickItemInstance of this array with its respective ID string.
+    const safeObj = this.map(inst => inst.idString);
+    
+    // Convenience property for serializing and parsing this class as JSON
+    safeObj.jsonType = this.constructor.name;
+
+    return safeObj;
   }
 
   /*************************************************************************************************

@@ -65,11 +65,8 @@ class BrickItemInstance {
         expectQty: this.expectQty,
         haveQty: this.haveQty,
         notes: `Duplicated from ${this.idString}`});
-
-    //if (dupe.notes == "Duplicated from part:3023:11:0") debugger;
     
     this.pushSibling(dupe);
-
   }
 
   /*************************************************************************************************
@@ -77,6 +74,29 @@ class BrickItemInstance {
   *************************************************************************************************/
   pushSibling (inst) {
     this.commonItem.push(inst);
+  }
+
+  /*************************************************************************************************
+  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
+  / instead. This allows us to remove the circular references that prevent JSON.stringify from
+  / working.
+  *************************************************************************************************/
+  toJSON () {
+    // Copy over all of the properties to a clean object
+    const safeObj = {...this};
+
+    // Replace each reference to Items and Instances 'above' this instance with their ID strings.
+    safeObj.parentInst = this.parentInst.idString;
+    safeObj.commonItem = this.commonItem.idString;
+    
+    // Don't replace references which go 'down' into nested children or JSON.stringify won't
+    // find them.
+    // safeObj.childrenInst = this.childrenInst.map(inst => inst.idString);
+    
+    // Convenience property for serializing and parsing this class as JSON
+    safeObj.jsonType = this.constructor.name;
+
+    return safeObj;
   }
 
   /*************************************************************************************************
