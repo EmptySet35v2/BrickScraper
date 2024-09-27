@@ -54,61 +54,18 @@ class BrickItem {
   }
 
   /*************************************************************************************************
-  / push
+  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
+  / instead. This allows us to remove the circular references that prevent JSON.stringify from
+  / working.
   *************************************************************************************************/
-  push (...inst) {
-    for (const i of inst) {
-      i.commonItem = this;
-    }
-    this.instances.push(...inst);
-  }
+  toJSON () {
+    // Copy over all of the properties to a clean object
+    const safeObj = {...this};
+        
+    // Convenience property for serializing and parsing this class as JSON
+    safeObj.jsonType = this.constructor.name;
 
-  /*************************************************************************************************
-  / item ID getters
-  *************************************************************************************************/  
-  get idString () {
-    if (this.num == '') {
-      throw "Attempted to get itemID of invalid BrickItem";
-    }
-    return `${this.type}:${this.num}:${this.color}`.toLowerCase();
-  }
-
-  get itemID () {
-    if (this.itemNum == '') {
-      throw "Attempted to get itemInfo of invalid BrickItem";
-    }
-    return {num: this.num, color: this.color, type: this.type};
-  }
-
-  get prettyName (){
-    return `${this.type} ${this.num} ${this.type == BrickTypes.typeEnum.SET ? '' : `C${this.color}`}`.trim();
-  }
-
-  /*************************************************************************************************
-  / invUrl
-  *************************************************************************************************/  
-  get invUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
-      return UrlFromItemID(this.itemID);
-    }
-    else {
-      return '';
-    }
-  }
-
-  get imgUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
-      return ImgUrlFromItemID(this.itemID);
-    }
-    else {
-      return '';
-    }
-  }
-  /*************************************************************************************************
-  / numInstances
-  *************************************************************************************************/ 
-  get numInstances () {
-    return this.instances.length;
+    return safeObj;
   }
 
   /*************************************************************************************************
@@ -135,13 +92,15 @@ class BrickItem {
     return string.join('\n');
   }
 
+  /*************************************************************************************************
+  / toMarkdown
+  *************************************************************************************************/
   toMarkdown (instance = -1) {
     return [
       `## ${this.prettyName}\n`,
       `*${this.category.join(' > ')}*\n\n`,
 
       `<img src="${this.imgUrl}" alt="Image of ${this.prettyName} from BrickLink.com" width="250"/>\n\n`,
-      //`![Image of ${this.prettyName} from BrickLink.com](${this.imgUrl} =150x150 "${this.prettyName}")\n\n`,
       
       `${this.numInstances > 0 && this.instances[0].numChildren > 0 ? `[BrickLink Inventory Page](${this.invUrl})\n\n` : ''}`,
 
@@ -156,20 +115,58 @@ class BrickItem {
 
       `</details>\n`,
     ];
-  };
+  }
 
   /*************************************************************************************************
-  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
-  / instead. This allows us to remove the circular references that prevent JSON.stringify from
-  / working.
+  / push
   *************************************************************************************************/
-  toJSON () {
-    // Copy over all of the properties to a clean object
-    const safeObj = {...this};
-        
-    // Convenience property for serializing and parsing this class as JSON
-    safeObj.jsonType = this.constructor.name;
+  push (...inst) {
+    for (const i of inst) {
+      i.commonItem = this;
+    }
+    this.instances.push(...inst);
+  }
 
-    return safeObj;
+  /*************************************************************************************************
+  / Derived property getters
+  *************************************************************************************************/
+  get idString () {
+    if (this.num == '') {
+      throw "Attempted to get itemID of invalid BrickItem";
+    }
+    return `${this.type}:${this.num}:${this.color}`.toLowerCase();
+  }
+
+  get itemID () {
+    if (this.itemNum == '') {
+      throw "Attempted to get itemInfo of invalid BrickItem";
+    }
+    return {num: this.num, color: this.color, type: this.type};
+  }
+
+  get prettyName (){
+    return `${this.type} ${this.num} ${this.type == BrickTypes.typeEnum.SET ? '' : `C${this.color}`}`.trim();
+  }
+
+  get invUrl () {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
+      return UrlFromItemID(this.itemID);
+    }
+    else {
+      return '';
+    }
+  }
+
+  get imgUrl () {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
+      return ImgUrlFromItemID(this.itemID);
+    }
+    else {
+      return '';
+    }
+  }
+
+  get numInstances () {
+    return this.instances.length;
   }
 } /** End BrickItem **/

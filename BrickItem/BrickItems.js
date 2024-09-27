@@ -17,76 +17,6 @@
 / Class BrickItems
 *************************************************************************************************/
 class BrickItems extends Array{ 
-  
-  /*************************************************************************************************
-  / Constructor for an Array which enforces type = BrickItem
-  *************************************************************************************************/
-  constructor (...args) {
-    super(...args);
-    this.checkType(false, ...args);
-
-    // Convenience property for serializing and parsing this class as JSON
-    this.jsonType = this.constructor.name;
-  }
-
-  /*************************************************************************************************
-  / Pushes one or more items onto the array. Merges instances of the new item(s) to existing 
-  / item(s) if the item already is in the array.
-  *************************************************************************************************/
-  push (...args) {
-    this.checkType(true, ...args);
-
-    const retVal = [];
-    for (const arg of args) {
-      const index = this.findIndex((item) => {
-        return item.idString == arg.idString;
-      });
-
-      if (index >= 0) { // Found in array, so ask the item to add the instance      
-        this[index].push(...arg.instances);
-        retVal.push(true);
-
-      } else { // Not found in array, so add it as is
-        super.push(arg);
-        retVal.push(false);
-      }
-    }
-
-    return retVal.every((e) => e); //If all true, return true
-  }
-
-  totalInstances () {
-    let len = 0;
-    
-    for (const i of this) {
-      len += i.instances.length;
-    }
-
-    return len;
-  }
-
-  allInstances () {
-    let insts = [];
-    
-    for (const i of this) {
-      insts.push(...i.instances);
-    }
-
-    return insts;
-  }
-
-  /*************************************************************************************************
-  / enforces type = BrickItem
-  *************************************************************************************************/
-  checkType (strict, ...args) {
-    for (const arg of args) {
-      // One argument which is an integer is allowed to init an empty array
-      if (arg instanceof Number && args.length == 1 && !strict) continue; 
-
-      // Otherwise must be of the right type
-      //if (!(arg instanceof BrickItem)) throw "Must be a BrickItemInstance";
-    }
-  }
 
   /*************************************************************************************************
   / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
@@ -104,7 +34,7 @@ class BrickItems extends Array{
   }
 
   /*************************************************************************************************
-  / returns a pretty string of the entire array via recursion
+  / toString
   *************************************************************************************************/
   toString() {
     const string = [];
@@ -126,6 +56,9 @@ class BrickItems extends Array{
     return string.join('\n');
   }
 
+  /*************************************************************************************************
+  / Markdown functions
+  *************************************************************************************************/
   static toMarkdownByItems (items) {    
     const markdown = [];
     for (const item of items.values()) {
@@ -140,11 +73,56 @@ class BrickItems extends Array{
 
     return [
       `# ${type == BrickTypes.typeEnum.GEAR ? "Gear" : `${type}s`}\n`,
-      `This inventory has ${foundItems.totalInstances()} ${typeText.toLowerCase()}, including:\n\n`,
+      `This inventory has ${foundItems.totalInstances} ${typeText.toLowerCase()}, including:\n\n`,
 
       ...(BrickItems.toMarkdownByItems(foundItems)),`\n`,
     ];
   };
+
+  /*************************************************************************************************
+  / Pushes one or more items onto the array. Merges instances of the new item(s) to existing 
+  / item(s) if the item already is in the array.
+  *************************************************************************************************/
+  push (...args) {
+     const retVal = [];
+    for (const arg of args) {
+      const index = this.findIndex((item) => {
+        return item.idString == arg.idString;
+      });
+
+      if (index >= 0) { // Found in array, so ask the item to add the instance      
+        this[index].push(...arg.instances);
+        retVal.push(true);
+
+      } else { // Not found in array, so add it as is
+        super.push(arg);
+        retVal.push(false);
+      }
+    }
+
+    return retVal.every((e) => e); //If all true, return true
+  }
+
+  /*************************************************************************************************
+  / Derived property getters
+  *************************************************************************************************/
+  get totalInstances () {
+    return this.allInstances().length;
+  }
+
+  /*************************************************************************************************
+  / allInstances
+  *************************************************************************************************/
+  allInstances () {
+    let insts = [];
+    
+    for (const i of this) {
+      insts.push(...i.instances);
+    }
+
+    return insts;
+  }
+
 
 } /** End BrickItems **/
 

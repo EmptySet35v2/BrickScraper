@@ -52,28 +52,6 @@ class BrickItemInstance {
   }
 
   /*************************************************************************************************
-  / duplicate
-  *************************************************************************************************/
-  duplicate (parentInst) {
-    const dupe = new BrickItemInstance (
-      this.commonItem,
-      { parentInst: parentInst,
-        section: this.section,
-        expectQty: this.expectQty,
-        haveQty: this.haveQty,
-        notes: `Duplicated from ${this.idString}`});
-    
-    this.pushSibling(dupe);
-  }
-
-  /*************************************************************************************************
-  / pushSibling
-  *************************************************************************************************/
-  pushSibling (inst) {
-    this.commonItem.push(inst);
-  }
-
-  /*************************************************************************************************
   / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
   / instead. This allows us to remove the circular references that prevent JSON.stringify from
   / working.
@@ -83,7 +61,7 @@ class BrickItemInstance {
     const safeObj = {...this};
 
     // Replace each reference to Items and Instances 'above' this instance with their ID strings.
-    safeObj.parentInst = this.parentInst.idString;
+    safeObj.parentInst = this.parentInst != null ? this.parentInst.idString : null;
     safeObj.commonItem = this.commonItem.idString;
     
     // Replace references which go 'down' into nested children, they will be found through their
@@ -97,89 +75,6 @@ class BrickItemInstance {
   }
 
   /*************************************************************************************************
-  / num
-  *************************************************************************************************/
-  get num () {
-    return this.commonItem.instances.indexOf(this);
-  }
-
-  /*************************************************************************************************
-  / num
-  *************************************************************************************************/
-  get numChildren () {
-    return this.childrenInst.length;
-  }
-
-  /*************************************************************************************************
-  / idString
-  *************************************************************************************************/
-  get idString () {
-    return `${this.commonItem.idString}:${this.num}`;
-  }
-
-  get prettyName (){
-    return `${this.commonItem.prettyName} I${this.num}`.trim();
-  }
-  
-  get mdRefName (){
-    return `#${this.prettyName.replace(/[\s-]+/g, '-').toLowerCase()}`;
-  }
-
-  /*************************************************************************************************
-  / allChildren
-  *************************************************************************************************/
-  allChildren (depth=-1) {
-    const string = [];   
-
-    if (depth >= 0) {
-      string.push(`${new Array((2 * depth) + 1).join(' ')}${this.idString} Qty: ${this.expectQty} (${this.haveQty}) Notes: ${this.notes}`);
-    }
-    
-    for (const c of this.childrenInst.values()) {
-      string.push(...c.allChildren(depth+1));
-    }
-
-    return string;
-  }
-
-  /*************************************************************************************************
-  / allChildrenMd
-  *************************************************************************************************/
-  allChildrenMd (depth=-1) {
-    const string = [];
-
-    if (depth >= 0) {
-      string.push(`${new Array((2 * depth) + 1).join('  ')}- ![${this.commonItem.num}](${this.commonItem.imgUrl} =40x40 "${this.commonItem.num}") ${this.expectQty}x [${this.prettyName}](${this.mdRefName})\n`);
-    }
-
-    for (const c of this.childrenInst.values()) {
-      string.push(...c.allChildrenMd(depth+1));
-    }
-
-    return string;
-  }
-
-  toMarkdown() {
-    const children = this.childrenInst.length > 0 ? [...this.allChildrenMd()] : [''];
-    
-    return [
-      `<details>\n`,
-      `<summary>Instance ${this.num}</summary>\n\n`,
-
-      `### ${this.prettyName}\n`,
-      `${this.parentInst != null ? `Found In: [${this.parentInst.prettyName}](${this.parentInst.mdRefName})\n\n` : ''}`,
-
-      `${this.childrenInst.length > 0 ? `<details>\n` : ''}`,
-      `${this.childrenInst.length > 0 ? `<summary>${this.childrenInst.length} Sub-Item(s):</summary>\n\n` : ''}`,
-
-      ...children,'\n',
-
-      `${this.childrenInst.length > 0 ? `</details>\n` : ''}`,
-      `</details>\n`,
-    ];
-  };
-
-  /*************************************************************************************************
   / toString
   *************************************************************************************************/
   toString() {
@@ -190,7 +85,7 @@ class BrickItemInstance {
     string.push(`${this.childrenInst.length} Child(ren) BrickItemInstance(s)`);
 
     for (const [i, c] of this.childrenInst.entries()) {
-      const allChildrenStrings = c.allChildren();
+      const allChildrenStrings = c.allChildrenString();
       for (const [j, s] of allChildrenStrings.entries()) {
         if (i == this.childrenInst.length-1 && j == allChildrenStrings.length-1) {
           string.push(` └  ${s}`);
@@ -206,5 +101,96 @@ class BrickItemInstance {
     string.push(`Notes: ${this.notes}`);
     
     return string.join('\n');
+  }
+
+  /*************************************************************************************************
+  / markdown functions
+  *************************************************************************************************/
+  toMarkdown() {
+    const children = this.childrenInst.length > 0 ? [...this.allChildrenMarkdown()] : [''];
+    
+    return [
+      `<details>\n`,
+      `<summary>Instance ${this.num}</summary>\n\n`,
+
+      `### ${this.prettyName}\n`,
+      `${this.parentInst != null ? `Found In: [${this.parentInst.prettyName}](${this.parentInst.markdownRefId})\n\n` : ''}`,
+
+      `${this.childrenInst.length > 0 ? `<details>\n` : ''}`,
+      `${this.childrenInst.length > 0 ? `<summary>${this.childrenInst.length} Sub-Item(s):</summary>\n\n` : ''}`,
+
+      ...children,'\n',
+
+      `${this.childrenInst.length > 0 ? `</details>\n` : ''}`,
+      `</details>\n`,
+    ];
+  };
+
+  /*************************************************************************************************
+  / duplicate
+  *************************************************************************************************/
+  duplicate (parentInst) {
+    const dupe = new BrickItemInstance (
+      this.commonItem,
+      { parentInst: parentInst,
+        section: this.section,
+        expectQty: this.expectQty,
+        haveQty: this.haveQty,
+        notes: `Duplicated from ${this.idString}`});
+    
+    this.commonItem.push(dupe);
+  }
+
+  /*************************************************************************************************
+  / Derived property getters
+  *************************************************************************************************/
+  get num () {
+    return this.commonItem.instances.indexOf(this);
+  }
+
+  get numChildren () {
+    return this.childrenInst.length;
+  }
+
+  get idString () {
+    return `${this.commonItem.idString}:${this.num}`;
+  }
+
+  get prettyName (){
+    return `${this.commonItem.prettyName} I${this.num}`.trim();
+  }
+  
+  get markdownRefId (){
+    return `#${this.prettyName.replace(/[\s-]+/g, '-').toLowerCase()}`;
+  }
+
+  /*************************************************************************************************
+  / allChildren
+  *************************************************************************************************/
+  allChildren_ (startDepth = 0, stopDepth = -Infinity) {
+    const currentDepth = startDepth;
+    const descendants = [];   
+
+    if (currentDepth < 0 && currentDepth >= stopDepth) {
+      descendants.push({depth: -currentDepth, inst: this});
+    }
+    
+    for (const c of this.childrenInst.values()) {
+      descendants.push(...c.allChildren_(startDepth-1));
+    }
+
+    return descendants;
+  }
+
+  allChildrenMarkdown (startDepth = 0, stopDepth = -Infinity) {
+    return this.allChildren_(startDepth, stopDepth).map(d => 
+      `${new Array((2 * (d.depth - 1)) + 1).join('  ')}- ![${d.inst.commonItem.num}](${d.inst.commonItem.imgUrl} =40x40 "${d.inst.commonItem.num}") ${d.inst.expectQty}x [${d.inst.prettyName}](${d.inst.markdownRefId})\n`
+    ).join('');
+  }
+
+  allChildrenString (startDepth = 0, stopDepth = -Infinity) {
+    return this.allChildren_(startDepth, stopDepth).map(d => 
+      `${new Array((2 * (d.depth - 1)) + 1).join(' ')}${d.inst.idString} Qty: ${d.inst.expectQty} (${d.inst.haveQty}) Notes: ${d.inst.notes}`
+    );
   }
 }

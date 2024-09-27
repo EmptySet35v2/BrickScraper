@@ -19,63 +19,14 @@
 class BrickItemInstances extends Array{ 
 
   /*************************************************************************************************
-  / constructor
-  *************************************************************************************************/ 
-  constructor (...args) {
-    super(...args);
-    this.checkType(false, ...args);
-  }
-
-  /*************************************************************************************************
-  / pushChild
-  *************************************************************************************************/ 
-  pushChild (...args) {
-    this.checkType(true, ...args);
-
-    for (const arg of args) {if (this.indexOf(arg) >= 0) throw "Every instance pushed must be unique"}
-    super.push(...args);
-  }
-
-  /*************************************************************************************************
-  / push
-  *************************************************************************************************/ 
-  push (...args) {
-    this.checkType(true, ...args);
-
-    for (const arg of args) {    
-      if (this.indexOf(arg) >= 0) throw "Every instance pushed must be unique"
-
-      // not the first instance, so we know what children this item has
-      if (this.length > 0) {
-        // Ask each child of the item's first instance to duplicate itself with the arg as the new parent
-        for (const child of this[0].childrenInst) {child.duplicate(arg);}
-      }
-
-      super.push(arg);
-    }
-  }
-
-  /*************************************************************************************************
-  / enforces type = BrickItemInstance
-  *************************************************************************************************/
-  checkType (strict, ...args) {
-    for (const arg of args) {
-      // One argument which is an integer is allowed to init an empty array
-      if (arg instanceof Number && args.length == 1 && !strict) continue; 
-
-      // Otherwise must be of the right type
-      if (!(arg instanceof BrickItemInstance)) throw "Must be a BrickItemInstance";
-    }
-  }
-
-  /*************************************************************************************************
   / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
   / instead. This allows us to remove the circular references that prevent JSON.stringify from
   / working.
   *************************************************************************************************/
   toJSON () {
     // Replace each BrickItemInstance of this array with its respective ID string.
-    const safeObj = this.map(inst => inst.idString);
+    //const safeObj = this.map(inst => inst.idString);
+    const safeObj = {...this};
     
     // Convenience property for serializing and parsing this class as JSON
     safeObj.jsonType = this.constructor.name;
@@ -86,7 +37,7 @@ class BrickItemInstances extends Array{
   /*************************************************************************************************
   / toString
   *************************************************************************************************/ 
-  toString() {
+  toString () {
     const string = [];
 
     for (const [i, b] of this.entries()) { 
@@ -105,6 +56,9 @@ class BrickItemInstances extends Array{
     return string.join('\n');
   }
 
+  /*************************************************************************************************
+  / toMarkdown
+  *************************************************************************************************/ 
   toMarkdown (instance = -1) {
     const markdown = [];
     const filtInst = instance < 0 ? this.values() : [this[instance]].values();
@@ -115,4 +69,29 @@ class BrickItemInstances extends Array{
     
     return markdown;
   };
+
+  /*************************************************************************************************
+  / pushChild
+  *************************************************************************************************/ 
+  pushChild (...args) {
+    for (const arg of args) {if (this.indexOf(arg) >= 0) throw "Every instance pushed must be unique"}
+    super.push(...args);
+  }
+
+  /*************************************************************************************************
+  / push
+  *************************************************************************************************/ 
+  push (...args) {
+    for (const arg of args) {    
+      if (this.indexOf(arg) >= 0) throw "Every instance pushed must be unique"
+
+      // not the first instance, so we know what children this item has
+      if (this.length > 0) {
+        // Ask each child of the item's first instance to duplicate itself with the arg as the new parent
+        for (const child of this[0].childrenInst) {child.duplicate(arg);}
+      }
+
+      super.push(arg);
+    }
+  }
 } /** End BrickItemInstances **/

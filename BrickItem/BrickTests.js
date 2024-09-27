@@ -36,12 +36,12 @@ function tb_BrickScraper () {
     DriveApp.getRootFolder(), "LEGO"), "BrickLink Parser"), "Data"), date);
   
   /** JSON output */
-  const json = BrickScraper.saveAsJSON(scraper);
+  const json = scraper.saveAsJSON();
   parserDataDir.createFile(`tb_BrickScraper_${date}.json`, json, MimeType.PLAIN_TEXT);
 
   /** JSON output */
-  const json2 = BrickScraper.saveAsJSON(BrickScraper.loadFromJSON(json));
-  parserDataDir.createFile(`tb_BrickScraper_${date}_restored.json`, json2, MimeType.PLAIN_TEXT);
+  //const json2 = BrickScraper.loadFromJSON(json).saveAsJSON();
+  //parserDataDir.createFile(`tb_BrickScraper_${date}_restored.json`, json2, MimeType.PLAIN_TEXT);
 
   /** toString output */
   parserDataDir.createFile(`tb_BrickScraper_${date}.txt`, scraper.items.toString(), MimeType.PLAIN_TEXT);
@@ -55,8 +55,8 @@ function tb_BrickScraper () {
   parserDataDir.createFile(`tb_BrickScraper_${date}.html`, html, MimeType.HTML);
 
   /** UI Sidebar */
-  const htmlout = HtmlService.createHtmlOutput((html)).setTitle('Item Details');
-  SpreadsheetApp.getUi().showSidebar(htmlout);
+  //const htmlout = HtmlService.createHtmlOutput((html)).setTitle('Item Details');
+  //SpreadsheetApp.getUi().showSidebar(htmlout);
 }
 
 /*************************************************************************************************
@@ -198,8 +198,8 @@ function tb_BrickItem () {
   Logger.log(myBrickItems.push(myBrickItem4));
 
   Logger.log(`${myBrickItems}`);
-  Logger.log(`${myBrickItems.totalInstances()}`);
-  Logger.log(`${myBrickItems.jsonType}`);
-  Logger.log(`${myBrickItem0.instances[0].allChildren(0,100)}`)
+  Logger.log(`${myBrickItems.totalInstances}`);
+  Logger.log(`${myBrickItem0.instances[0].allChildrenString()}`)
+  Logger.log(`${myBrickItem0.instances[0].allChildrenMarkdown()}`)
 
 }

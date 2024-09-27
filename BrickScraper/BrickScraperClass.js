@@ -37,13 +37,13 @@ class BrickScraper {
     
     return [
       `# Inventory Overview\n`,
-      `This inventory has ${this.items.totalInstances()} items, including:\n\n`,
+      `This inventory has ${this.items.totalInstances} items, including:\n\n`,
 
-      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.SET).totalInstances()} set(s).\n`,
-      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.PART).totalInstances()} part(s).\n`,
-      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.MINIFIG).totalInstances()} minifig(s).\n`,
-      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.BOOK).totalInstances()} book(s).\n`,
-      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.GEAR).totalInstances()} pieces(s) of gear.\n\n`,
+      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.SET).totalInstances} set(s).\n`,
+      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.PART).totalInstances} part(s).\n`,
+      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.MINIFIG).totalInstances} minifig(s).\n`,
+      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.BOOK).totalInstances} book(s).\n`,
+      `- ${this.items.filter((item) => item.type == BrickTypes.typeEnum.GEAR).totalInstances} pieces(s) of gear.\n\n`,
 
       ...(BrickItems.toMarkdownByType(this.items, BrickTypes.typeEnum.SET)),
       ...(BrickItems.toMarkdownByType(this.items, BrickTypes.typeEnum.PART)),
@@ -60,7 +60,7 @@ class BrickScraper {
   }
 
   /************************************************************************************* 
-  / getJSON
+  / saveAsJSON
   /*************************************************************************************/
   saveAsJSON() {
     // Copy over all of the properties to a clean object
@@ -73,7 +73,7 @@ class BrickScraper {
   }
 
   /************************************************************************************* 
-  / fromJSON
+  / loadFromJSON
   /*************************************************************************************/
   static loadFromJSON(json) {
     function reviver(key, value) {
@@ -128,7 +128,7 @@ class BrickScraper {
           });
 
           // Restore object references between the item and its instances
-          brickClass.instances = new BrickItemInstances(...value.instances);
+          brickClass.instances = new BrickItemInstances(...value.instances.values());
           for (const instToRestore in brickClass.instances.values()) {
             instToRestore.commonItem = brickClass;
             
@@ -178,7 +178,7 @@ class BrickScraper {
     urls.forEach((url) => {roots.push(new BrickItem({url:url}))});
 
     roots.forEach((root) => {
-      let numItems = this.items.totalInstances();
+      let numItems = this.items.totalInstances;
       
       if (!this.items.push(root)) {
         for (let i = 0; i < root.numInstances; i++) {
