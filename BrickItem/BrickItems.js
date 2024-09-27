@@ -89,6 +89,21 @@ class BrickItems extends Array{
   }
 
   /*************************************************************************************************
+  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
+  / instead. This allows us to remove the circular references that prevent JSON.stringify from
+  / working.
+  *************************************************************************************************/
+  toJSON () {  
+    // Copy over all of the properties to a clean object
+    const safeObj = {...this};
+
+    // Convenience property for serializing and parsing this class as JSON
+    safeObj.jsonType = this.constructor.name;
+
+    return safeObj;
+  }
+
+  /*************************************************************************************************
   / returns a pretty string of the entire array via recursion
   *************************************************************************************************/
   toString() {
@@ -130,6 +145,7 @@ class BrickItems extends Array{
       ...(BrickItems.toMarkdownByItems(foundItems)),`\n`,
     ];
   };
+
 } /** End BrickItems **/
 
 

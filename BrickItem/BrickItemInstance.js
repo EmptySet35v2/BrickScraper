@@ -49,9 +49,6 @@ class BrickItemInstance {
     if (this.parentInst != null) {
       this.parentInst.childrenInst.pushChild(this)
     }
-
-    // Convenience property for serializing and parsing this class as JSON
-    this.jsonType = this.constructor.name;
   }
 
   /*************************************************************************************************
@@ -89,9 +86,9 @@ class BrickItemInstance {
     safeObj.parentInst = this.parentInst.idString;
     safeObj.commonItem = this.commonItem.idString;
     
-    // Don't replace references which go 'down' into nested children or JSON.stringify won't
-    // find them.
-    // safeObj.childrenInst = this.childrenInst.map(inst => inst.idString);
+    // Replace references which go 'down' into nested children, they will be found through their
+    // common items.
+    safeObj.childrenInst = this.childrenInst.map(inst => inst.idString);
     
     // Convenience property for serializing and parsing this class as JSON
     safeObj.jsonType = this.constructor.name;

@@ -27,9 +27,6 @@ class BrickScraper {
     // parsed. It is not of type BrickItems, because we want to avoid the caching
     // behavior of that class.
     this.roots = [];
-
-    // Convenience property for serializing and parsing this class as JSON
-    this.jsonType = this.constructor.name;
   }
 
   /************************************************************************************* 
@@ -65,25 +62,14 @@ class BrickScraper {
   /************************************************************************************* 
   / getJSON
   /*************************************************************************************/
-  static saveAsJSON(scraper) {
-    function replacer(key, value) {
-      // Filtering out properties
-      if (typeof key == 'string' && !isNaN(key) && value instanceof BrickItem) {
-        //return {id: value.idString, item: value}
-        return value;
-      } else if (key == "commonItem" && value instanceof BrickItem) {
-        return value.idString;
-      } else if (key == "parentInst" && value instanceof BrickItemInstance) {
-        return value.idString;
-      } else if (key == "childrenInst" && value instanceof BrickItemInstances) {
-        let idStrings = [];
-        value.forEach((item) => idStrings.push(item.idString));
-        return idStrings;
-      }
-      return value;
-    };
+  saveAsJSON() {
+    // Copy over all of the properties to a clean object
+    const safeObj = {...this};
 
-    return JSON.stringify({scraper: scraper, jsonType: "Top"}, replacer, 4);
+    // Convenience property for serializing and parsing this class as JSON
+    safeObj.jsonType = this.constructor.name;
+    
+    return JSON.stringify({scraper: safeObj, jsonType: "Top"}, null, 4);
   }
 
   /************************************************************************************* 
