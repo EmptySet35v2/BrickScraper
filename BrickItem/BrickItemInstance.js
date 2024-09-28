@@ -49,6 +49,8 @@ class BrickItemInstance {
     if (this.parentInst != null) {
       this.parentInst.childrenInst.pushChild(this)
     }
+
+    this.allowDupe = true;
   }
 
   /*************************************************************************************************
@@ -60,18 +62,35 @@ class BrickItemInstance {
     // Copy over all of the properties to a clean object
     const safeObj = {...this};
 
+    safeObj.instanceID = this.idString;
+
     // Replace each reference to Items and Instances 'above' this instance with their ID strings.
-    safeObj.parentInst = this.parentInst != null ? this.parentInst.idString : null;
-    safeObj.commonItem = this.commonItem.idString;
+    safeObj.parentInstID = this.parentInst != null ? this.parentInst.idString : null;
+    safeObj.commonItemID = this.commonItem.idString;
+    delete safeObj.parentInst;
+    delete safeObj.commonItem;
     
     // Replace references which go 'down' into nested children, they will be found through their
     // common items.
-    safeObj.childrenInst = this.childrenInst.map(inst => inst.idString);
+    safeObj.childrenInstIDs = [...this.childrenInst.map(inst => inst.idString)];
+    delete safeObj.childrenInst;
     
+    const idx = safeObj.inventoryIdx;
+    delete safeObj.inventoryIdx;
+
     // Convenience property for serializing and parsing this class as JSON
     safeObj.jsonType = this.constructor.name;
 
-    return safeObj;
+    
+    delete safeObj.allowDupe;
+
+    // Return the full commonItem for the first instance. Return a stub for others to save space.
+    if (this.num > 0) {
+      return {idString: this.commonItem.idString, instances: [safeObj], jsonType: "BrickItemStub", idx: idx};
+    } else {
+      
+      return {...this.commonItem, instances: [safeObj], jsonType: "BrickItem", idx: idx};
+    }
   }
 
   /*************************************************************************************************
@@ -81,7 +100,7 @@ class BrickItemInstance {
     const string = [];
     string.push(`Instance ID: ${this.idString}`);
     string.push(`Common BrickItem: ${this.commonItem.idString}`);
-    string.push(`Parent BrickItemInstance: ${this.parentInst === null ? 'None' : this.parentInst.idString}`);
+    string.push(`Parent BrickItemInstance: ${this.parentInst == null ? 'None' : this.parentInst.idString}`);
     string.push(`${this.childrenInst.length} Child(ren) BrickItemInstance(s)`);
 
     for (const [i, c] of this.childrenInst.entries()) {
@@ -129,7 +148,7 @@ class BrickItemInstance {
   /*************************************************************************************************
   / duplicate
   *************************************************************************************************/
-  duplicate (parentInst) {
+  duplicate (parentInst, nextIdx) {
     const dupe = new BrickItemInstance (
       this.commonItem,
       { parentInst: parentInst,
@@ -137,8 +156,10 @@ class BrickItemInstance {
         expectQty: this.expectQty,
         haveQty: this.haveQty,
         notes: `Duplicated from ${this.idString}`});
-    
-    this.commonItem.push(dupe);
+
+    dupe.inventoryIdx = nextIdx;
+        
+    return this.commonItem.push(dupe);
   }
 
   /*************************************************************************************************
@@ -152,8 +173,24 @@ class BrickItemInstance {
     return this.childrenInst.length;
   }
 
+  get commonItemID () {
+    return this.commonItem.itemID;
+  }
+
+  get parentInstID () {
+    return this.parentInst.instanceID;
+  }
+
+  get childrenInstID () {
+    return this.childrenInst.map(c => c.instanceID);
+  }
+
+  get instanceID () {
+    return {...this.commonItemID, inst: this.num};
+  }
+
   get idString () {
-    return `${this.commonItem.idString}:${this.num}`;
+    return `${this.commonItemID.type}:${this.commonItemID.num}:${this.commonItemID.color}:${this.num}`.toLowerCase();;
   }
 
   get prettyName (){

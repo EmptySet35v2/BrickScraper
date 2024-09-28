@@ -54,21 +54,6 @@ class BrickItem {
   }
 
   /*************************************************************************************************
-  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
-  / instead. This allows us to remove the circular references that prevent JSON.stringify from
-  / working.
-  *************************************************************************************************/
-  toJSON () {
-    // Copy over all of the properties to a clean object
-    const safeObj = {...this};
-        
-    // Convenience property for serializing and parsing this class as JSON
-    safeObj.jsonType = this.constructor.name;
-
-    return safeObj;
-  }
-
-  /*************************************************************************************************
   / returns a pretty string of the entire array via recursion
   *************************************************************************************************/
   toString() {
@@ -124,24 +109,22 @@ class BrickItem {
     for (const i of inst) {
       i.commonItem = this;
     }
-    this.instances.push(...inst);
+    return this.instances.push(...inst);
   }
 
   /*************************************************************************************************
   / Derived property getters
   *************************************************************************************************/
   get idString () {
-    if (this.num == '') {
-      throw "Attempted to get itemID of invalid BrickItem";
-    }
     return `${this.type}:${this.num}:${this.color}`.toLowerCase();
   }
 
   get itemID () {
-    if (this.itemNum == '') {
-      throw "Attempted to get itemInfo of invalid BrickItem";
-    }
     return {num: this.num, color: this.color, type: this.type};
+  }
+
+  get instanceIDs () {
+    return this.instances.map(c => c.instanceID);
   }
 
   get prettyName (){
@@ -149,7 +132,7 @@ class BrickItem {
   }
 
   get invUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN) {
       return UrlFromItemID(this.itemID);
     }
     else {
@@ -158,7 +141,7 @@ class BrickItem {
   }
 
   get imgUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN) {
       return ImgUrlFromItemID(this.itemID);
     }
     else {

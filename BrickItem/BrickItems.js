@@ -16,7 +16,13 @@
 /*************************************************************************************************
 / Class BrickItems
 *************************************************************************************************/
-class BrickItems extends Array{ 
+class BrickItems extends Array{
+
+  constructor (...args) {
+    super(...args);
+
+    this.inventorySize = 0;
+  }
 
   /*************************************************************************************************
   / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
@@ -25,12 +31,61 @@ class BrickItems extends Array{
   *************************************************************************************************/
   toJSON () {  
     // Copy over all of the properties to a clean object
-    const safeObj = {...this};
+    // Each instance is returned as a standalone item when toJSON is called on it, so creating
+    // an item array from each instance happens automatically.
+    const safeObj = {itemArray: [...this.allInstances()]};
 
     // Convenience property for serializing and parsing this class as JSON
     safeObj.jsonType = this.constructor.name;
 
     return safeObj;
+  }
+
+  /*************************************************************************************************
+  / Unlike toJSON which is automatically called, fromJSON is part of the larger reviver function
+  / used to restore JSON data to its original form with the Brick<x> classes.
+  *************************************************************************************************/
+  static fromJSON (jsonValue) {
+    if (jsonValue.jsonType != "BrickItems") return jsonValue;
+    
+    const newBrickItems = new BrickItems();
+
+    // Each item has been reduced to just the first instance, so that we can replay the additions
+    // in order back onto the new BrickItems object.
+    for (const item of jsonValue.itemArray) {
+      if (item.jsonType == "BrickItem") {
+        const newBrickItem = new BrickItem({
+          num:item.num, 
+          color:item.color, 
+          type:item.type,
+          commOpts:{
+            category: item.category.slice(2), 
+            description: item.description, 
+            itemUrl: item.itemUrl
+          },
+          instOpts:[{
+            ...item.instances[0],
+            // Items are added in the same order they were initially scraped, so parents are added before children
+            parentInst: newBrickItems.findInstByID(item.instances[0].parentInstID)}]
+        });
+
+        newBrickItems.push(newBrickItem);
+      } else {
+        item.instances = [new BrickItemInstance (
+          // Items are added in the same order they were initially scraped, so the common item is already added
+          newBrickItems.findItemByID(item.commonItemID),
+          {...item.instances[0], parentInst: newBrickItems.findInstByID(item.instances[0].parentInstID)}
+        )]
+
+        item.instances[0].allowDupe = false;
+
+        newBrickItems.push(item);
+
+
+      }
+    }
+
+    return newBrickItems;
   }
 
   /*************************************************************************************************
@@ -84,18 +139,23 @@ class BrickItems extends Array{
   / item(s) if the item already is in the array.
   *************************************************************************************************/
   push (...args) {
-     const retVal = [];
+    const retVal = [];
     for (const arg of args) {
       const index = this.findIndex((item) => {
         return item.idString == arg.idString;
       });
 
+      if (arg.instances.length != 1) throw "exactly 1 instance plz";
+
+      arg.instances[0].inventoryIdx = this.inventorySize;
+
       if (index >= 0) { // Found in array, so ask the item to add the instance      
-        this[index].push(...arg.instances);
+        this.inventorySize = this[index].push(arg.instances[0]);
         retVal.push(true);
 
       } else { // Not found in array, so add it as is
         super.push(arg);
+        this.inventorySize += 1;
         retVal.push(false);
       }
     }
@@ -120,9 +180,37 @@ class BrickItems extends Array{
       insts.push(...i.instances);
     }
 
+    insts.sort((a, b) => a.inventoryIdx - b.inventoryIdx);
+
     return insts;
   }
 
+  /*************************************************************************************************
+  / findItemByID
+  *************************************************************************************************/
+  findItemByID (idString) {
+    return this.find((item) => {item.idString == idString});
+  }
+
+  /*************************************************************************************************
+  / findInstByID
+  *************************************************************************************************/
+  findInstByID (idString) {
+    //Logger.log(`LOOKING FOR "${idString}"`);
+    const allin = this.allInstances()
+    const found = allin.find((inst) => {
+      //Logger.log(inst.idString);
+      
+      return inst.idString == idString;
+    });
+    
+    if ((idString != null && found == null) || (found != null && found.idString != idString)) {
+      Logger.log(`ID WAS ${idString} BUT FOUND "${`${found == null ? 'null' : found.idString}`}"`);  
+    }
+    
+
+    return found;
+  }
 
 } /** End BrickItems **/
 

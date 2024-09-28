@@ -23,10 +23,7 @@ class BrickScraper {
     // represent the data in google sheets.
     this.items = new BrickItems();
     
-    // This array of BrickItem is used to store the roots as they are created and
-    // parsed. It is not of type BrickItems, because we want to avoid the caching
-    // behavior of that class.
-    this.roots = [];
+    // TODO: add scraping parameters here
   }
 
   /************************************************************************************* 
@@ -80,92 +77,19 @@ class BrickScraper {
       let brickClass = {};
       
       if (value != null && typeof value == 'object') {
-        if (value.jsonType == "Top") {
-          // key-value pairs are properties of the soon-to-be BrickScraper (a.k.a "this").
-          brickClass = new BrickScraper();
-          brickClass.items = new BrickItems(...value.scraper.items);
-          
-          for (const [i, r] of value.scraper.roots.entries()) {
-            const index = brickClass.items.findIndex((item) => {
-              return item.idString == r.idString;
-            });
+        if (key == "scraper" && value.jsonType == "BrickScraper") {
+          const newScraper = new BrickScraper();
+          newScraper.items = BrickItems.fromJSON(value.items);
 
-            if (index >= 0) { // Found in array, so add the root to roots     
-              brickClass.roots[i] = brickClass.items[index];
-            } else { // Not found in array, so deserialization has gone wrong :(
-              throw ("error deserializing JSON, root item not found");
-            }
-          }
-
-          for (const instToRestore of brickClass.items.allInstances().values()) {
-            if (instToRestore.jsonParentInst != null) {
-              // find the parent inst in allInstances
-              instToRestore.parentInst = brickClass.items.allInstances().find((inst) => {inst.idString == instToRestore.jsonParentInst});
-            }
-            // delete the jsonParentInst property
-            delete instToRestore.jsonParentInst;
-            
-            if (instToRestore.jsonChildrenInst != []) {
-              // find the child inst in allInstances
-              for (const childInst of instToRestore.jsonChildrenInst.values()) {
-                instToRestore.childrenInst.push(brickClass.items.allInstances().find((inst) => {inst.idString == childInst}));
-              }
-            }
-            // delete the jsonParentInst property
-            delete instToRestore.jsonChildrenInst;
-          }
-            
-          return brickClass;
-        
-        } else if (value.jsonType == "BrickItem") { //BrickItems
-          // key-value pairs are array elements of the soon-to-be BrickItems (a.k.a "this").
-          // all values in the array must be converted back to type BrickItem.
-          brickClass = new BrickItem({
-            num: value.num,
-            color: value.color,
-            type: value.type,
-            commOpts:{category:value.category, description:value.description, itemUrl: value.itemUrl}
-          });
-
-          // Restore object references between the item and its instances
-          brickClass.instances = new BrickItemInstances(...value.instances.values());
-          for (const instToRestore in brickClass.instances.values()) {
-            instToRestore.commonItem = brickClass;
-            
-            // delete the jsonCommonItem property
-            delete instToRestore.jsonChildrenInst;
-          }
-
-          return brickClass;
-        
-        } else if (value.jsonType == "BrickItemInstance") { //BrickItemInstances
-          // key-value pairs are array elements of the soon-to-be BrickItemInstances (a.k.a "this").
-          // all values in the array must be converted back to type BrickItemInstance.
-          brickClass = new BrickItemInstance();        
-          
-          // cache the string IDs, and clear the properties which will actually hold references to the objects.
-          // the properties will be restored later.
-          brickClass.jsonCommonItem = value.commonItem;
-          brickClass.commonItem = null;
-          brickClass.jsonParentInst = value.parentInst;
-          brickClass.parentItem = null;
-          brickClass.jsonChildrenInst = value.childrenInst;
-          brickClass.childrenInst = new BrickItemInstances();
-
-          for (const key of ['section', 'expectQty', 'haveQty', 'hidden', 'notes']) {
-            brickClass[key] = value.hasOwnProperty(key) ? value[key] : brickClass[key];
-          }
-
-          return brickClass;
-        } else {
-          return value;
+          return newScraper;
         }
-      } else {
-        return value;
       }
-    };
+      return value;
+    }
+    
+    const parsed = JSON.parse(json, reviver);
 
-    return JSON.parse(json, reviver);
+    return parsed.scraper;
   }
 
   /************************************************************************************* 
@@ -185,8 +109,6 @@ class BrickScraper {
           this.scrapeInst(root.instances[i]);
         }
       }
-
-      this.roots.push(root);
     });
 
     return roots;

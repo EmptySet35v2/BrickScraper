@@ -19,22 +19,6 @@
 class BrickItemInstances extends Array{ 
 
   /*************************************************************************************************
-  / toJSON is automatically called by JSON.stringify, so that it will stringify the returned object
-  / instead. This allows us to remove the circular references that prevent JSON.stringify from
-  / working.
-  *************************************************************************************************/
-  toJSON () {
-    // Replace each BrickItemInstance of this array with its respective ID string.
-    //const safeObj = this.map(inst => inst.idString);
-    const safeObj = {...this};
-    
-    // Convenience property for serializing and parsing this class as JSON
-    safeObj.jsonType = this.constructor.name;
-
-    return safeObj;
-  }
-
-  /*************************************************************************************************
   / toString
   *************************************************************************************************/ 
   toString () {
@@ -82,16 +66,25 @@ class BrickItemInstances extends Array{
   / push
   *************************************************************************************************/ 
   push (...args) {
+    let nextIdx = args[0].inventoryIdx;
+    
     for (const arg of args) {    
       if (this.indexOf(arg) >= 0) throw "Every instance pushed must be unique"
 
+      arg.inventoryIdx = nextIdx;
+      nextIdx += 1;
+
       // not the first instance, so we know what children this item has
-      if (this.length > 0) {
+      if (this.length > 0 && arg.allowDupe) {
         // Ask each child of the item's first instance to duplicate itself with the arg as the new parent
-        for (const child of this[0].childrenInst) {child.duplicate(arg);}
+        for (const child of this[0].childrenInst) {
+          nextIdx = child.duplicate(arg, nextIdx);
+        }
       }
 
       super.push(arg);
     }
+
+    return nextIdx;
   }
 } /** End BrickItemInstances **/

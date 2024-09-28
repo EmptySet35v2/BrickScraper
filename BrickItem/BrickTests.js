@@ -18,11 +18,11 @@
 function tb_BrickScraper () {
   const sets = [
     "1722-1","2151-1","2152-1","2154-1","2161-1","3438-1",
-    /*"3442-1","6107-1","6110-1","6256-1","6285-1","6491-1",
+    "3442-1","6107-1","6110-1","6256-1","6285-1","6491-1",
     "6496-1","6544-1","6673-1","6783-1","6809-1","6815-1",
     "6834-1","6854-1","6856-1","6877-1","6887-1","6899-1",
     "6923-1","6925-1","6949-1","6979-1","6990-1","8032-1",
-    "8074-1","8222-1","8225-1","8226-1","8422-1","8448-1",*/
+    "8074-1","8222-1","8225-1","8226-1","8422-1","8448-1",
     "8458-1","8856-1","9732-1","9747-1","9748-1","1666-1"
   ];
                     
@@ -39,12 +39,25 @@ function tb_BrickScraper () {
   const json = scraper.saveAsJSON();
   parserDataDir.createFile(`tb_BrickScraper_${date}.json`, json, MimeType.PLAIN_TEXT);
 
+  const scraper2 = BrickScraper.loadFromJSON(json);
+
   /** JSON output */
-  //const json2 = BrickScraper.loadFromJSON(json).saveAsJSON();
-  //parserDataDir.createFile(`tb_BrickScraper_${date}_restored.json`, json2, MimeType.PLAIN_TEXT);
+  const json2 = scraper2.saveAsJSON();
+  parserDataDir.createFile(`tb_BrickScraper_${date}_restored.json`, json2, MimeType.PLAIN_TEXT);
+
+  if (json != json2) {
+    Logger.log("JSON restore failed")
+  }
+
+  Logger.log(`Inventory Size = ${scraper.items.inventorySize}`);
+  Logger.log(`Num Instances = ${scraper.items.totalInstances}`);
+
+  Logger.log(`Inventory Size 2= ${scraper2.items.inventorySize}`);
+  Logger.log(`Num Instances 2= ${scraper2.items.totalInstances}`);
 
   /** toString output */
   parserDataDir.createFile(`tb_BrickScraper_${date}.txt`, scraper.items.toString(), MimeType.PLAIN_TEXT);
+  parserDataDir.createFile(`tb_BrickScraper_${date}_restored.txt`, scraper2.items.toString(), MimeType.PLAIN_TEXT);
 
   /** Markdown output */
   const md = scraper.toMarkdown()
