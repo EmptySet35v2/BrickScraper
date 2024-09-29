@@ -126,7 +126,7 @@ class BrickItemInstance {
   / markdown functions
   *************************************************************************************************/
   toMarkdown() {
-    const children = this.childrenInst.length > 0 ? [...this.allChildrenMarkdown()] : [''];
+    const children = this.childrenInst.length > 0 ? this.allChildrenMarkdown() : [''];
     
     return [
       `<details>\n`,
@@ -222,7 +222,7 @@ class BrickItemInstance {
   allChildrenMarkdown (startDepth = 0, stopDepth = -Infinity) {
     return this.allChildren_(startDepth, stopDepth).map(d => 
       `${new Array((2 * (d.depth - 1)) + 1).join('  ')}- ![${d.inst.commonItem.num}](${d.inst.commonItem.imgUrl} =40x40 "${d.inst.commonItem.num}") ${d.inst.expectQty}x [${d.inst.prettyName}](${d.inst.markdownRefId})\n`
-    ).join('');
+    );
   }
 
   allChildrenString (startDepth = 0, stopDepth = -Infinity) {

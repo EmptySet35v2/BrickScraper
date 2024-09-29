@@ -70,6 +70,38 @@ function tb_BrickScraper () {
   /** UI Sidebar */
   //const htmlout = HtmlService.createHtmlOutput((html)).setTitle('Item Details');
   //SpreadsheetApp.getUi().showSidebar(htmlout);
+
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('lastRunDate', date);
+}
+
+/*************************************************************************************************
+/ tb_loadJSON
+*************************************************************************************************/
+function tb_loadJSON () {
+  var userProperties = PropertiesService.getUserProperties();
+  date = userProperties.getProperty('lastRunDate');
+
+  Logger.log("START");
+
+  const parserDataDir = getOrCreateFolder(getOrCreateFolder(getOrCreateFolder(getOrCreateFolder(
+    DriveApp.getRootFolder(), "LEGO"), "BrickLink Parser"), "Data"), date);
+
+  Logger.log("FOLDER FOUND");
+
+  const json = parserDataDir.getFilesByName(`tb_BrickScraper_${date}.json`).next().getAs(MimeType.PLAIN_TEXT).getDataAsString();
+
+  Logger.log("FILE READ");
+
+  const scraper2 = BrickScraper.loadFromJSON(json);
+
+  Logger.log("JSON PASRSED");
+
+  const md = scraper2.items[0].toMarkdown().join('');
+
+  parserDataDir.createFile(`tb_BrickScraper_${date}_restored_single_item.md`, md, MimeType.PLAIN_TEXT);
+
+  Logger.log("DONE");
 }
 
 /*************************************************************************************************
