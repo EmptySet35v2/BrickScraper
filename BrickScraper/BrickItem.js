@@ -51,67 +51,6 @@ class BrickItem {
       opts.notes = `Automatically created from BrickItem Constructor`;
       this.push(new BrickItemInstance(this, opts));
     }
-
-    // Convenience property for serializing and parsing this class as JSON
-    this.jsonType = this.constructor.name;
-  }
-
-  /*************************************************************************************************
-  / push
-  *************************************************************************************************/
-  push (...inst) {
-    for (const i of inst) {
-      i.commonItem = this;
-    }
-    this.instances.push(...inst);
-  }
-
-  /*************************************************************************************************
-  / item ID getters
-  *************************************************************************************************/  
-  get idString () {
-    if (this.num == '') {
-      throw "Attempted to get itemID of invalid BrickItem";
-    }
-    return `${this.type}:${this.num}:${this.color}`.toLowerCase();
-  }
-
-  get itemID () {
-    if (this.itemNum == '') {
-      throw "Attempted to get itemInfo of invalid BrickItem";
-    }
-    return {num: this.num, color: this.color, type: this.type};
-  }
-
-  get prettyName (){
-    return `${this.type} ${this.num} ${this.type == BrickTypes.typeEnum.SET ? '' : `C${this.color}`}`.trim();
-  }
-
-  /*************************************************************************************************
-  / invUrl
-  *************************************************************************************************/  
-  get invUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
-      return UrlFromItemID(this.itemID);
-    }
-    else {
-      return '';
-    }
-  }
-
-  get imgUrl () {
-    if (this.type != BrickTypes.typeEnum.UNKNOWN && this.type != BrickTypes.typeEnum.SET_LIST) {
-      return ImgUrlFromItemID(this.itemID);
-    }
-    else {
-      return '';
-    }
-  }
-  /*************************************************************************************************
-  / numInstances
-  *************************************************************************************************/ 
-  get numInstances () {
-    return this.instances.length;
   }
 
   /*************************************************************************************************
@@ -138,13 +77,15 @@ class BrickItem {
     return string.join('\n');
   }
 
+  /*************************************************************************************************
+  / toMarkdown
+  *************************************************************************************************/
   toMarkdown (instance = -1) {
     return [
       `## ${this.prettyName}\n`,
       `*${this.category.join(' > ')}*\n\n`,
 
       `<img src="${this.imgUrl}" alt="Image of ${this.prettyName} from BrickLink.com" width="250"/>\n\n`,
-      //`![Image of ${this.prettyName} from BrickLink.com](${this.imgUrl} =150x150 "${this.prettyName}")\n\n`,
       
       `${this.numInstances > 0 && this.instances[0].numChildren > 0 ? `[BrickLink Inventory Page](${this.invUrl})\n\n` : ''}`,
 
@@ -159,5 +100,56 @@ class BrickItem {
 
       `</details>\n`,
     ];
-  };
+  }
+
+  /*************************************************************************************************
+  / push
+  *************************************************************************************************/
+  push (...inst) {
+    for (const i of inst) {
+      i.commonItem = this;
+    }
+    return this.instances.push(...inst);
+  }
+
+  /*************************************************************************************************
+  / Derived property getters
+  *************************************************************************************************/
+  get idString () {
+    return `${this.type}:${this.num}:${this.color}`.toLowerCase();
+  }
+
+  get itemID () {
+    return {num: this.num, color: this.color, type: this.type};
+  }
+
+  get instanceIDs () {
+    return this.instances.map(c => c.instanceID);
+  }
+
+  get prettyName (){
+    return `${this.type} ${this.num} ${this.type == BrickTypes.typeEnum.SET ? '' : `C${this.color}`}`.trim();
+  }
+
+  get invUrl () {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN) {
+      return UrlFromItemID(this.itemID);
+    }
+    else {
+      return '';
+    }
+  }
+
+  get imgUrl () {
+    if (this.type != BrickTypes.typeEnum.UNKNOWN) {
+      return ImgUrlFromItemID(this.itemID);
+    }
+    else {
+      return '';
+    }
+  }
+
+  get numInstances () {
+    return this.instances.length;
+  }
 } /** End BrickItem **/
