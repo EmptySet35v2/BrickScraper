@@ -94,6 +94,49 @@ class BrickItemInstance {
   }
 
   /*************************************************************************************************
+  / Return this as an array for storing in
+  *************************************************************************************************/
+  toArray(header = false) {
+    const jsonObj = this.toJSON();
+    
+    const comObj = {...jsonObj};
+    delete comObj.jsonType;
+    delete comObj.idx;
+    delete comObj.idString;
+    delete comObj.instances;    
+    
+    const instObj = {...jsonObj.instances[0]};
+    delete instObj.jsonType;
+    
+    const comKeys = Object.keys(comObj);
+    const instKeys = Object.keys(instObj);
+
+    const headers = [
+      "type",
+      "index",
+      ...instKeys.map(k => `instance_${k}`),
+      ...comKeys.map(k => `item_${k}`)
+    ];
+
+    let comVals = new Array(Object.keys({...this.commonItem}).length - 1);
+    if (jsonObj.jsonType == "BrickItemStub") {
+      comVals.fill("");
+    } else {
+      comVals = [...comKeys.map(k => {return Array.isArray(jsonObj[k]) ? jsonObj[k].join('\n') : jsonObj[k]})];
+    }
+
+    const values  = [
+      jsonObj.jsonType,
+      jsonObj.idx,
+      ...instKeys.map(k => {return Array.isArray(jsonObj.instances[0][k]) ? jsonObj.instances[0][k].join('\n') : jsonObj.instances[0][k]}),
+      ...comVals
+    ];
+
+    if (header) return headers;
+    return values;
+  }
+
+  /*************************************************************************************************
   / toString
   *************************************************************************************************/
   toString() {

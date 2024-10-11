@@ -49,23 +49,39 @@ function tb_BrickScraper () {
     Logger.log("JSON restore failed")
   }
 
+  let jsonSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.JSON);
+  const jsonArray = scraper.saveAsJSON().split(/\r?\n/g).map(e => [e]);
+  LockService.getScriptLock().waitLock(60000);
+  jsonSheet.clear();
+  jsonSheet.getRange(1, 1, jsonArray.length).setValues(jsonArray);
+
+  const json3 = jsonSheet.getDataRange().getValues().flat(Infinity).join('\n');
+  Logger.log(json3);
+  if (json3 != json) {
+    Logger.log("JSON Sheet restore failed")
+  }
+  const scraper3 = BrickScraper.loadFromJSON(json3);
+
   Logger.log(`Inventory Size = ${scraper.items.inventorySize}`);
   Logger.log(`Num Instances = ${scraper.items.totalInstances}`);
 
   Logger.log(`Inventory Size 2= ${scraper2.items.inventorySize}`);
   Logger.log(`Num Instances 2= ${scraper2.items.totalInstances}`);
 
+  Logger.log(`Inventory Size 3= ${scraper3.items.inventorySize}`);
+  Logger.log(`Num Instances 3= ${scraper3.items.totalInstances}`);
+
   /** toString output */
-  parserDataDir.createFile(`tb_BrickScraper_${date}.txt`, scraper.items.toString(), MimeType.PLAIN_TEXT);
-  parserDataDir.createFile(`tb_BrickScraper_${date}_restored.txt`, scraper2.items.toString(), MimeType.PLAIN_TEXT);
+  //parserDataDir.createFile(`tb_BrickScraper_${date}.txt`, scraper.items.toString(), MimeType.PLAIN_TEXT);
+  //parserDataDir.createFile(`tb_BrickScraper_${date}_restored.txt`, scraper2.items.toString(), MimeType.PLAIN_TEXT);
 
   /** Markdown output */
-  const md = scraper.toMarkdown()
-  parserDataDir.createFile(`tb_BrickScraper_${date}.md`, md, MimeType.PLAIN_TEXT);
+  //const md = scraper.toMarkdown()
+  //parserDataDir.createFile(`tb_BrickScraper_${date}.md`, md, MimeType.PLAIN_TEXT);
   
   /** HTML output */
-  const html = RenderMarkdown(md);
-  parserDataDir.createFile(`tb_BrickScraper_${date}.html`, html, MimeType.HTML);
+  //const html = RenderMarkdown(md);
+  //parserDataDir.createFile(`tb_BrickScraper_${date}.html`, html, MimeType.HTML);
 
   /** UI Sidebar */
   //const htmlout = HtmlService.createHtmlOutput((html)).setTitle('Item Details');

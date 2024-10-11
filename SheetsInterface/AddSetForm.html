@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <script>
+      // Prevent forms from submitting.
+      function preventFormSubmit() {
+        var forms = document.querySelectorAll('form');
+        for (var i = 0; i < forms.length; i++) {
+          forms[i].addEventListener('submit', function(event) {
+            event.preventDefault();
+          });
+        }
+      }
+      
+      window.addEventListener('load', preventFormSubmit);
+
+      function handleSetFormSubmit(formObject) {
+        google.script.run.withSuccessHandler(addSetSuccess).processAddSet(formObject);
+      }
+
+      function updateImage(formObject) { 
+        if (formObject.num.value != '') {
+          document.getElementById("setimgdiv").setAttribute('class', `block imgcontainer`);
+          document.getElementById("setimg").setAttribute('alt', `Image of New Set`);
+          document.getElementById("setimg").setAttribute('src', `${'https://img.bricklink.com/ItemImage/SN/0/'}${formObject.num.value}.png`);
+        } else {
+          document.getElementById("setimgdiv").setAttribute('class', ``);
+          document.getElementById("setimg").setAttribute('alt', ``);
+          document.getElementById("setimg").setAttribute('src', ``);
+        }
+      }
+
+      function addSetSuccess(num) {
+        document.getElementById('setformsub').value = `Staged ${num} for Scraping!`;
+
+        setTimeout(function(){
+          document.getElementById('setformsub').value = "Add Set";
+          document.getElementById("addsetform").reset();
+          updateImage({num: {value: ""}});
+        }, 2000);
+      }
+
+      function handleXmlFormSubmit(formObject) {
+        google.script.run.withSuccessHandler(addXmlSuccess).processAddXml(formObject);
+      }
+
+      function addXmlSuccess(num) {
+        document.getElementById('xmlformsub').value = `Staged ${num} Set(s) for Scraping!`;
+
+        setTimeout(function(){
+          document.getElementById('xmlformsub').value = "Add Set";
+          document.getElementById("addxmlform").reset();
+        }, 2000);
+      }
+
+      function getFile() {
+        document.getElementById("upfile").click();
+      }
+
+      function sub(obj) {
+        var file = obj.value;
+        var fileName = file.split("\\");
+        document.getElementById("xmlfilename").innerHTML = fileName[fileName.length - 1];
+        //document.myForm.submit();
+        event.preventDefault();
+      }
+    </script>
+    <style>
+      .bordered-div {
+        border: 2px solid LightSlateGrey;
+        padding: 10px;
+        border-radius: 10px;
+        background-color: GhostWhite;
+      }
+
+      .filename {
+        background: #fff;
+        border: 1px solid #d9d9d9;
+        border-radius: 1px;
+        border-top: 1px solid #c0c0c0;
+        min-width: 250px;
+        width: 250px;
+        min-height: 17px;
+        height: 17px
+        color: #000;
+        font-family: arial, sans-serif;
+        font-size: 13px;
+        font-weight: normal;
+        margin: 0;
+        outline: 0;
+        padding: 3px;
+        top: 2px;
+        left: 125px;
+        position: absolute;
+        display: flex;
+        align-items: center;
+      }
+
+      .bordered-div-header {
+        text-align: center;
+        padding-top: 0px;
+        padding-bottom: 16px;
+        color: #000;
+        font: 16px arial, sans-serif, normal;
+      }
+
+      .imgcontainer {
+        width: 450px; /* adjust to container size as needed */
+        max-height: 250px; /* adjust to container size as needed */
+      }
+
+      .imgcontainer img {
+        max-width: 100%;
+        max-height: 250px;
+        display: block;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="block">
+      <div class="block">
+        <span class="gray" style="font-style: italic">
+          Use this menu to stage sets for scraping into your inventory. Sets can be 
+          added one at a time by number, or they can be added in bulk by importing
+          a BrickLink inventory XML file.
+        </span>
+      </div>
+      
+      <div class="block bordered-div">
+        <div class="bordered-div-header">Add Set by Number</div>
+
+        <div class="block form-group">
+          <form id="addsetform" onchange="updateImage(this)" onsubmit="handleSetFormSubmit(this)">
+            <div class="block">
+              <label for="num"> Set Number </label>
+              <input
+                type="text"
+                name="num"
+                id="num"
+                placeholder="e.g., 6990-1"
+              />
+            </div>
+
+            <div id="setimgdiv">
+              <img id="setimg"></img>
+            </div>
+
+            <div class="block">
+              <label for="qty"> Quantity Owned </label>
+              <input
+                type="number"
+                min="0"
+                max="999"
+                name="qty"
+                id="qty"
+                value="1"
+              />
+            </div>
+
+            <div class="block">
+              <input
+                type="submit"
+                class="blue"
+                value="Add Set"
+                id="setformsub"
+              />
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="block bordered-div">
+        <div class="bordered-div-header">Import BrickLink Inventory XML</div>
+      
+        <div class="block form-group">
+          <form id="addxmlform" onsubmit="handleXmlFormSubmit(this)">
+            <div class="block" style="position: relative">
+              <div style="position: relative">
+                <div>
+                  <input
+                    type="button"
+                    value="Choose XML File"
+                    class="gray"
+                    onclick="getFile()"
+                    id="xmlbutton"
+                  />
+                </div>
+
+                <div style='height: 0px;width: 0px; overflow:hidden;'>
+                  <input 
+                    id="upfile"
+                    type="file"
+                    name="xmlfile"
+                    value="Select XML"
+                    onchange="sub(this)"
+                  />
+                </div>
+              </div>
+
+              <div class="filename" id="xmlfilename" >
+                &nbsp;
+              </div>
+            </div>
+
+            <div class="block">
+              <input
+                type="submit"
+                class="blue"
+                value="Import Sets"
+                id="xmlformsub"
+              />
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

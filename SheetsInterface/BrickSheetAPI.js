@@ -22,80 +22,140 @@ BrickApp.sheets = Object.freeze({
   INVENTORY:     "Manage Inventory",
   STAGING:       "_STAGING_",
   ITEMS:         "_DB_ITEMS_",
-  INSTANCES:     "_DB_INSTANCES_"
-});
-
-BrickApp.colors = Object.freeze({
-  OUTERBORDER: "#efefef",
-  INNERBORDER: "#003F5B",
-  NOTEBG: "#FFF6EB",
-  TEXT: "#001D29",
-  CELLBORDER: "#6D4E4A",
-  ORANGEACCENT: "#E2711D",
-  GREENACCENT: "#6C7D47",
+  INSTANCES:     "_DB_INSTANCES_",
+  JSON:          "_RAW_JSON_"
 });
 
 function onOpen() {
-  SpreadsheetApp.getUi()
-      .createMenu('BrickScraper')
-      .addItem('Show sidebar', 'showSidebar')
-      .addToUi();
 
-  initSpreadsheet();
 }
 
-function processForm(formObject) {
+function addSetOrXml () {
+  SpreadsheetApp.getUi()
+    .showModalDialog(
+      HtmlService.createHtmlOutputFromFile('SheetsInterface/AddSetForm').setWidth(500).setHeight(700),'Add New Set')
+}
+
+function processAddSet(formObject) {
   let setnum = formObject.num;
   let setqty = formObject.qty ? formObject.qty : 1;
 
   let stagingsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.STAGING);
-  stagingsheet.appendRow([`=IMAGE("https://img.bricklink.com/ItemImage/SN/0/${setnum}.png")`, `${setnum}`, `${setqty}`, 'false']);
+  let idx = stagingsheet.getLastRow();
+
+  stagingsheet.appendRow([idx, `=IMAGE("https://img.bricklink.com/ItemImage/SN/0/${setnum}.png")`, `${setnum}`, `${setqty}`, 'false']);
 
   if (setqty > 1) return `${setnum} (Qty: ${setqty})`;
   return `${setnum}`;
 }
 
-function addSet () {
-  SpreadsheetApp.getUi()
-    .showModalDialog(
-      HtmlService.createHtmlOutputFromFile('SheetsInterface/html/AddSetForm').setWidth(500).setHeight(600),'Add New Set')
-}
+function processAddXml(formObject) {
+  const xmlBlob = formObject.xmlfile;
+  const xml = xmlBlob.getDataAsString();
 
-function addSetXml () {
-  SpreadsheetApp.getUi()
-    .showModalDialog(
-      HtmlService.createHtmlOutputFromFile('SheetsInterface/html/ImportFromFileForm').setWidth(500).setHeight(600),'Import Set XML');
-}
+  Logger.log(xml);
 
-function incrPage() {
+  let document = XmlService.parse(xml);
+  let root = document.getRootElement();
+
+  let items = root.getChildren('ITEM');
+  Logger.log(items.length)
+
   let stagingsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.STAGING);
-  let page = stagingsheet.getRange("H1");
+  let idx = stagingsheet.getLastRow();
 
-  page.setValue(page.getValue()+1);
-}
-
-function decrPage() {
-  let stagingsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.STAGING);
-  let page = stagingsheet.getRange("H1");
-
-  let curVal = page.getValue();
-
-  if (curVal > 0) {
-    page.setValue(curVal-1);
+  const ssVals = [];
+  for (item of items) {
+    if (item.getChild(`ITEMTYPE`).getText() == `S`) {
+      const num = item.getChild(`ITEMID`).getText();
+      const qty = item.getChild(`QTY`).getText();
+      ssVals.push([`${idx}`,`=IMAGE("https://img.bricklink.com/ItemImage/SN/0/${num}.png")`, `${num}`, `${qty}`, 'false']);
+      idx++
+    }
   }
+
+  Logger.log(ssVals);
+
+  LockService.getScriptLock().waitLock(60000);
+  stagingsheet.getRange(stagingsheet.getLastRow() + 1, 1, ssVals.length, ssVals[0].length).setValues(ssVals);
+
+  return ssVals.length;
 }
 
-function resetSpreadsheet () {
-  initSpreadsheet(true);
+function loadJsonFromSheet () {
+  let jsonSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.JSON);
+
+  if (jsonSheet.getLastRow() == 0) {
+    return new BrickScraper();
+  }
+  
+  const json3 = jsonSheet.getDataRange().getValues().flat(Infinity).join('\n');
+  //Logger.log(json3);
+  const scraper3 = BrickScraper.loadFromJSON(json3);
+
+  Logger.log(`Restored Inventory Size = ${scraper3.items.inventorySize}`);
+
+  return scraper3;
 }
 
-function initSpreadsheet(clearExisiting = false) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+function printInventory () {
+  const scraper = loadJsonFromSheet();
+  let inventory = scraper.items.allInstances();
+
+  Logger.log(inventory.length)
+
+  sheetInv = [inventory[0].toArray(true)];
+  sheetInv.push(...inventory.map(i => i.toArray()));
+
+  Logger.log(sheetInv.length)
+
+  let jsonSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.INSTANCES);
+  LockService.getScriptLock().waitLock(60000);
+  jsonSheet.clear();
+
+  const range = jsonSheet.getRange(1, 1, sheetInv.length, sheetInv[0].length);
+
+  range.setValues(sheetInv).setNumberFormat("@");
+  range.applyRowBanding(SpreadsheetApp.BandingTheme.INDIGO, true, true);
+  jsonSheet.autoResizeColumns(1, sheetInv[0].length);
+  jsonSheet.autoResizeRows(1, sheetInv.length);
 }
 
-function showSidebar() {
-  var html = HtmlService.createHtmlOutput('')
-      .setTitle('Item Details');
-  SpreadsheetApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
-      .showSidebar(html);
+function scrape () {
+  let stagingsheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.STAGING);
+
+  const values = stagingsheet.getDataRange().getValues();
+
+  // Grab the next 5 sets to scrape and calculate their URLs
+  const unscrapedSets = [];
+  const unscrapedIdxs = [];
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][4] === false && unscrapedSets.length < 5){
+      unscrapedSets.push(UrlFromItemID({num:values[i][2], type:BrickTypes.typeEnum.SET}));
+      unscrapedIdxs.push(i + 1); //convert to cell row index
+    }
+  }
+  
+  const scraper = loadJsonFromSheet();
+
+  for (row of unscrapedSets) {
+    Logger.log(`Scraping ${row}`);
+  }
+
+  scraper.scrapeUrl(unscrapedSets);
+  const jsonArray = scraper.saveAsJSON().split(/\r?\n/g).map(e => [e]);
+
+  let jsonSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BrickApp.sheets.JSON);
+  LockService.getScriptLock().waitLock(60000);
+  jsonSheet.clear();
+  jsonSheet.getRange(1, 1, jsonArray.length).setValues(jsonArray);
+
+  for (idx of unscrapedIdxs) {
+    Logger.log(idx);
+    stagingsheet.getRange(idx, 5).setValue(true);
+  }
+
+  printInventory();
+
+  Logger.log('done');
 }
